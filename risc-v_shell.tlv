@@ -47,6 +47,8 @@
                      $pc + 32'd4;
    $pc[31:0] = >>1$next_pc;
    
+   //2 - IMEM - Read -> NOT WORKING
+   `READONLY_MEM($pc, $$instr[31:0])
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = 1'b0;
