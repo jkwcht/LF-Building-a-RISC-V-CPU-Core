@@ -93,21 +93,43 @@
    `BOGUS_USE($imm)
    
    //6 - Decode Logic: Instruction
-   $dec_bits[10:0] = {$instr[30],$funct3,$opcode};
-   $is_beq = $dec_bits ==? 11'bx_000_1100011;
-   $is_bne = $dec_bits ==? 11'bx_001_1100011;
-   $is_blt = $dec_bits ==? 11'bx_100_1100011;
-   $is_bge = $dec_bits ==? 11'bx_101_1100011;
-   $is_bltu = $dec_bits ==? 11'bx_110_1100011;
-   $is_bgeu = $dec_bits ==? 11'bx_111_1100011;
-   $is_addi = $dec_bits ==? 11'bx_000_0010011;
-   $is_add = $dec_bits ==? 11'b0_000_0110011;
+   $dec_bits[10:0]   =  {$funct7[5], $funct3, $opcode};
+   $is_beq           =  $dec_bits ==? 11'bx_000_1100011;
+   $is_bne           =  $dec_bits ==? 11'bx_001_1100011;
+   $is_blt           =  $dec_bits ==? 11'bx_100_1100011;
+   $is_bge           =  $dec_bits ==? 11'bx_101_1100011;
+   $is_bltu          =  $dec_bits ==? 11'bx_110_1100011;
+   $is_bgeu          =  $dec_bits ==? 11'bx_111_1100011;
+   
+   $is_addi          =  $dec_bits ==? 11'bx_000_0010011;
+   $is_add           =  $dec_bits ==? 11'b0_000_0110011;
+   `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
+   
+   // ALU
+   $result[31:0] =
+    $is_addi ? $src1_value + $imm :
+    $is_add  ? $src1_value + $src2_value:
+               32'b0;
+   // SLTU and SLTI (set if less than, unsigned) results:
+   $sltu_rslt[31:0]  = {31'b0, $src1_value < $src2_value};
+   $sltiu_rslt[31:0] = {31'b0, $src1_value < $imm};
+   
+   // SRA and SRAI (shift right, arithmetic) results:
+   //  sign-extended src1
+   $sext_src1[63:0] =  { {32{$src1_value[31]}}, $src1_value };
+   //  64-bit sign-extended results, to be truncated
+   $sra_rslt[63:0] =   $sext_src1 >> $src2_value[4:0];
+   $srai_rslt[63:0] =  $sext_src1 >> $imm[4:0];
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = 1'b0;
    *failed = *cyc_cnt > M4_MAX_CYC;
    
-   m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rs1_valid, $rs1, $src1_value, $rs2_valid, $rs2, $src2_value)
+   // Deassert any values written to destination register x0 (it always have to be Zero)
+   $rd_valid = $rd[4:0] == 5'b0 ? 0 : $rd_valid;
+   
+   // m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rs1_valid, $rs1, $src1_value, $rs2_valid, $rs2, $src2_value)
+   m4+rf(32, 32, $reset, $rd_valid, $rd[4:0], $result[31:0], $rs1_valid, $rs1, $src1_value, $rs2_valid, $rs2, $src2_value)
    m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
    m4+cpu_viz()
 \SV
