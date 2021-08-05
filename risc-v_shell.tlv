@@ -105,7 +105,7 @@
    $is_add           =  $dec_bits ==? 11'b0_000_0110011;
    `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
    
-   // ALU
+   // 7 ALU
    $result[31:0] =
     $is_addi ? $src1_value + $imm :
     $is_add  ? $src1_value + $src2_value:
@@ -120,6 +120,14 @@
    //  64-bit sign-extended results, to be truncated
    $sra_rslt[63:0] =   $sext_src1 >> $src2_value[4:0];
    $srai_rslt[63:0] =  $sext_src1 >> $imm[4:0];
+   
+   // 8 Branch
+   $taken_br = $is_beq  ? $src1_value == $src1_value :
+               $is_bne  ? $src1_value != $src1_value :
+               $is_blt  ? ($src1_value < $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
+               $is_bge  ?  ($src1_value >= x$src2_value2) ^ ($src1_value[31] != $src2_value[31]) :
+               $is_bltu ? $src1_value < $src2_value :
+               $is_bgeu ? $src1_value >= $src2_value: 1b'0;
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = 1'b0;
