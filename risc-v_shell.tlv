@@ -43,8 +43,10 @@
    
    $reset = *reset;
    
-   $next_pc[31:0] =  $reset ? '0:
-                     $pc + 32'd4;
+   //$next_pc[31:0] =  $reset ? '0:
+   //                  $pc + 32'd4;
+   $next_pc[31:0] = $taken_br ? $br_tgt_pc :
+                    $reset ? '0 : $pc + 32'd4;
    $pc[31:0] = >>1$next_pc;
    
    //2 - IMEM - Read
@@ -125,9 +127,12 @@
    $taken_br = $is_beq  ? $src1_value == $src1_value :
                $is_bne  ? $src1_value != $src1_value :
                $is_blt  ? ($src1_value < $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
-               $is_bge  ?  ($src1_value >= x$src2_value2) ^ ($src1_value[31] != $src2_value[31]) :
+               $is_bge  ? ($src1_value >= $src2_value2) ^ ($src1_value[31] != $src2_value[31]) :
                $is_bltu ? $src1_value < $src2_value :
-               $is_bgeu ? $src1_value >= $src2_value: 1b'0;
+               $is_bgeu ? $src1_value >= $src2_value: 1'b0;
+   // The target PC is the PC of the branch plus its immediate value
+   $br_tgt_pc[31:0] = $pc + $imm;
+   
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = 1'b0;
